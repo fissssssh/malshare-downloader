@@ -1,7 +1,7 @@
 # malshare-downloader
 
 ![](https://img.shields.io/github/workflow/status/fissssssh/malshare-downloader/Build)
-![](https://img.shields.io/github/v/release/fissssssh/malshare-downloader?display_name=tag)
+![](https://img.shields.io/github/v/release/fissssssh/malshare-downloader?display_name=tag&include_prereleases)
 
 malshare-downloader
 
