@@ -7,27 +7,24 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
+	"malshare-downloader/internal/malshare"
 	"malshare-downloader/utils"
-
-	"github.com/MonaxGT/gomalshare"
 )
 
 func main() {
-	apiKeyPtr := flag.String("api", "", "API key MalShare")
-	var hashFilesDir, output, t string
+	var apiKey, hashFilesDir, output, _type, yara string
+	flag.StringVar(&apiKey, "api", "", "API key MalShare")
 	flag.StringVar(&hashFilesDir, "source", "hash_files", "directory of hash files")
 	flag.StringVar(&output, "o", "mal_files", "output directory")
-	flag.StringVar(&t, "t", "", "Download file type")
+	flag.StringVar(&_type, "type", "", "Download file type")
+	flag.StringVar(&yara, "yara", "", "Yarp")
 	flag.Parse()
 	files, err := ioutil.ReadDir(hashFilesDir)
 	if err != nil {
 		log.Fatalf("open source directory failed: %s", err)
-	}
-	conf, err := gomalshare.New(*apiKeyPtr, "https://www.malshare.com/")
-	if err != nil {
-		log.Fatalf("create gomalshare client failed: %s", err)
 	}
 	wg := sync.WaitGroup{}
 	concurrent := make(chan struct{}, 10)
@@ -57,16 +54,36 @@ func main() {
 			wg.Add(1)
 			concurrent <- struct{}{}
 			go func(hash string, filepath string) {
-				details, err := conf.GetStoredFileDetails(hash)
+				searchs, err := malshare.GetSearchResult(apiKey, hash)
 				if err != nil {
 					log.Printf("get stored file details file with hash %s failed: %s", hash, err)
 				}
-				if t != "" && details.FType != t {
+				if len(*searchs) == 0 {
 					<-concurrent
 					wg.Done()
 					return
 				}
-				file, err := conf.DownloadFileFromHash(hash)
+				details := (*searchs)[0]
+				if _type != "" && details.TypeSample != _type {
+					<-concurrent
+					wg.Done()
+					return
+				}
+				if yara != "" {
+					matched := false
+					for _, v := range details.YaraHits.Yara {
+						if strings.Contains(v, yara) {
+							matched = true
+							break
+						}
+					}
+					if !matched {
+						<-concurrent
+						wg.Done()
+						return
+					}
+				}
+				file, err := malshare.DownloadFileFromHash(apiKey, hash)
 				if err != nil {
 					log.Printf("download file with hash %s failed: %s", hash, err)
 					<-concurrent

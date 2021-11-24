@@ -17,19 +17,20 @@ malshare-downloader
 
   | Parameters | Required | Remark                                                        |
   | ---------- | -------- | ------------------------------------------------------------- |
-  | `start`    | ✅       | the start time of hash files                                  |
+  | `start`    | ✅        | the start time of hash files                                  |
   | `end`      |          | the end time of hash files<br>default is `now`                |
   | `o`        |          | the output directory of hash files<br>default is `hash_files` |
 
 - Download mal files
 
   ```shell
-  $ ./downloader -api=<api_key> [-source=<hash_files_dir>] [-t=<mal_file_tyle>] [-o=<output_dir>]
+  $ ./downloader -api=<api_key> [-source=<hash_files_dir>] [-type=<mal_file_tyle>] [-yara=<mal_file_yara>] [-o=<output_dir>]
   ```
 
   | Parameters | Required | Remark                                                                |
   | ---------- | -------- | --------------------------------------------------------------------- |
-  | `api`      | ✅       | the api key of Malshare                                               |
+  | `api`      | ✅        | the api key of Malshare                                               |
   | `source`   |          | the directory of hash files<br>default is `hash_files`                |
-  | `t`        |          | the type of mal files that you want                                   |
+  | `type`     |          | the type of mal files that you want                                   |
+  | `yara`     |          | the yara of mal files that you want                                   |
   | `o`        |          | the output directory of mal files<br>default is `mal_files/hash_file` |
