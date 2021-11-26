@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -26,15 +27,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("open source directory failed: %s", err)
 	}
-	wg := sync.WaitGroup{}
-	concurrent := make(chan struct{}, 10)
 	for _, file := range files {
+		wg := sync.WaitGroup{}
+		concurrent := make(chan struct{}, 10)
 		hashFilePath := path.Join(hashFilesDir, file.Name())
 		fs, err := os.Open(hashFilePath)
 		if err != nil {
 			log.Printf("open hash file %s error: %s", hashFilePath, err)
 			continue
 		}
+		log.SetPrefix(fmt.Sprintf("[%s]", file.Name()))
 		defer fs.Close()
 		sc := bufio.NewScanner(fs)
 		for sc.Scan() {
@@ -54,6 +56,7 @@ func main() {
 			wg.Add(1)
 			concurrent <- struct{}{}
 			go func(hash string, filepath string) {
+				log.Printf("searching details with hash %s", hash)
 				searchs, err := malshare.GetSearchResult(apiKey, hash)
 				if err != nil {
 					log.Printf("get stored file details file with hash %s failed: %s", hash, err)
@@ -83,6 +86,7 @@ func main() {
 						return
 					}
 				}
+				log.Printf("downloading file with hash %s", hash)
 				file, err := malshare.DownloadFileFromHash(apiKey, hash)
 				if err != nil {
 					log.Printf("download file with hash %s failed: %s", hash, err)
@@ -101,6 +105,6 @@ func main() {
 				wg.Done()
 			}(hash, filepath)
 		}
+		wg.Wait()
 	}
-	wg.Wait()
 }
