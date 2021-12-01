@@ -9,15 +9,14 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 
 	"malshare-downloader/internal/malshare"
 	"malshare-downloader/utils"
 )
 
 func main() {
-	var apiKey, hashFilesDir, output, _type, yara string
-	flag.StringVar(&apiKey, "api", "", "API key MalShare")
+	var keys_file, hashFilesDir, output, _type, yara string
+	flag.StringVar(&keys_file, "keys_file", "", "MalShare API key file")
 	flag.StringVar(&hashFilesDir, "source", "hash_files", "directory of hash files")
 	flag.StringVar(&output, "o", "mal_files", "output directory")
 	flag.StringVar(&_type, "type", "", "Download file type")
@@ -27,9 +26,29 @@ func main() {
 	if err != nil {
 		log.Fatalf("open source directory failed: %s", err)
 	}
+	if keys_file == "" {
+		log.Fatalf("need keys file")
+	}
+	// read keys_file
+	file, err := os.Open(keys_file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	apiKeySc := bufio.NewScanner(file)
+	var apiKeys []string
+	for apiKeySc.Scan() {
+		line := apiKeySc.Text()
+		if line != "" {
+			apiKeys = append(apiKeys, line)
+		}
+	}
+	if len(apiKeys) == 0 {
+		log.Fatalln("no api keys")
+	}
+	// init api key pool
+	malshare.InitApiKeyPool(apiKeys...)
 	for _, file := range files {
-		wg := sync.WaitGroup{}
-		concurrent := make(chan struct{}, 10)
 		hashFilePath := path.Join(hashFilesDir, file.Name())
 		fs, err := os.Open(hashFilePath)
 		if err != nil {
@@ -48,63 +67,46 @@ func main() {
 			if !utils.IsExist(filepath) {
 				err := os.MkdirAll(filepath, os.ModePerm)
 				if err != nil {
-					log.Printf("create directory %s failed: %s", filepath, err)
+					log.Fatalf("create directory %s failed: %s", filepath, err)
 					continue
 				}
 			}
 			filepath = path.Join(filepath, hash)
-			wg.Add(1)
-			concurrent <- struct{}{}
-			go func(hash string, filepath string) {
-				log.Printf("searching details with hash %s", hash)
-				searchs, err := malshare.GetSearchResult(apiKey, hash)
-				if err != nil {
-					log.Printf("get stored file details file with hash %s failed: %s", hash, err)
-				}
-				if len(*searchs) == 0 {
-					<-concurrent
-					wg.Done()
-					return
-				}
-				details := (*searchs)[0]
-				if _type != "" && details.TypeSample != _type {
-					<-concurrent
-					wg.Done()
-					return
-				}
-				if yara != "" {
-					matched := false
-					for _, v := range details.YaraHits.Yara {
-						if strings.Contains(v, yara) {
-							matched = true
-							break
-						}
-					}
-					if !matched {
-						<-concurrent
-						wg.Done()
-						return
+			log.Printf("searching details with hash %s", hash)
+			searchs, err := malshare.GetSearchResult(hash)
+			if err != nil {
+				log.Fatalf("get stored file details file with hash %s failed: %s", hash, err)
+			}
+			if len(*searchs) == 0 {
+				continue
+			}
+			details := (*searchs)[0]
+			if _type != "" && details.TypeSample != _type {
+				continue
+			}
+			if yara != "" {
+				matched := false
+				for _, v := range details.YaraHits.Yara {
+					if strings.Contains(v, yara) {
+						matched = true
+						break
 					}
 				}
-				log.Printf("downloading file with hash %s", hash)
-				file, err := malshare.DownloadFileFromHash(apiKey, hash)
-				if err != nil {
-					log.Printf("download file with hash %s failed: %s", hash, err)
-					<-concurrent
-					wg.Done()
+				if !matched {
+					continue
 				}
-				fs, err := os.Create(filepath)
-				if err != nil {
-					log.Printf("create file %s failed: %s", filepath, err)
-					<-concurrent
-					wg.Done()
-				}
-				defer fs.Close()
-				fs.Write(file)
-				<-concurrent
-				wg.Done()
-			}(hash, filepath)
+			}
+			log.Printf("downloading file with hash %s", hash)
+			file, err := malshare.DownloadFileFromHash(hash)
+			if err != nil {
+				log.Fatalf("download file with hash %s failed: %s", hash, err)
+			}
+			fs, err := os.Create(filepath)
+			if err != nil {
+				log.Fatalf("create file %s failed: %s", filepath, err)
+			}
+			defer fs.Close()
+			fs.Write(file)
 		}
-		wg.Wait()
 	}
 }

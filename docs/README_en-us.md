@@ -24,13 +24,13 @@ malshare-downloader
 - Download mal files
 
   ```shell
-  $ ./downloader -api=<api_key> [-source=<hash_files_dir>] [-type=<mal_file_tyle>] [-yara=<mal_file_yara>] [-o=<output_dir>]
+  $ ./downloader -keys_file=<keys_file> [-source=<hash_files_dir>] [-type=<mal_file_tyle>] [-yara=<mal_file_yara>] [-o=<output_dir>]
   ```
 
-  | Parameters | Required | Remark                                                                |
-  | ---------- | -------- | --------------------------------------------------------------------- |
-  | `api`      | ✅        | the api key of Malshare                                               |
-  | `source`   |          | the directory of hash files<br>default is `hash_files`                |
-  | `type`     |          | the type of mal files that you want                                   |
-  | `yara`     |          | the yara of mal files that you want                                   |
-  | `o`        |          | the output directory of mal files<br>default is `mal_files/hash_file` |
+  | Parameters  | Required | Remark                                                                |
+  | ----------- | -------- | --------------------------------------------------------------------- |
+  | `keys_file` | ✅        | the api keys file of Malshare                                         |
+  | `source`    |          | the directory of hash files<br>default is `hash_files`                |
+  | `type`      |          | the type of mal files that you want                                   |
+  | `yara`      |          | the yara of mal files that you want                                   |
+  | `o`         |          | the output directory of mal files<br>default is `mal_files/hash_file` |

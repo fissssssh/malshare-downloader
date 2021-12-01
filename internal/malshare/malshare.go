@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"strings"
 )
 
 // HashList struct for unmarshal general hash fields
@@ -27,22 +29,21 @@ type SearchDetails struct {
 	Subfiles    []interface{} `json:"subfiles,omitempty"`
 }
 
-const baseUrl = "http://www.malshare.com"
+const baseUrl = "https://www.malshare.com"
 
 // GetSearchResult return details form search sample hashes, sources and file names
-func GetSearchResult(apiKey string, str string) (*[]SearchDetails, error) {
-	url := fmt.Sprintf("%s/api.php?api_key=%s&action=search&query=%s", baseUrl, apiKey, str)
-	resp, err := http.Get(url)
+func GetSearchResult(str string) (*[]SearchDetails, error) {
+	apiKey, err := getApiKey()
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	url := fmt.Sprintf("%s/api.php?api_key=%s&action=search&query=%s", baseUrl, apiKey, str)
+	data, err := request(url, apiKey)
 	if err != nil {
 		return nil, err
 	}
 	var searches []SearchDetails
-	err = json.Unmarshal(body, &searches)
+	err = json.Unmarshal(data, &searches)
 	if err != nil {
 		return nil, err
 	}
@@ -50,16 +51,43 @@ func GetSearchResult(apiKey string, str string) (*[]SearchDetails, error) {
 }
 
 // DownloadFileFromHash return file for specific hash
-func DownloadFileFromHash(apiKey string, hash string) ([]byte, error) {
+func DownloadFileFromHash(hash string) ([]byte, error) {
+	apiKey, err := getApiKey()
+	if err != nil {
+		return nil, err
+	}
 	url := fmt.Sprintf("%s/api.php?api_key=%s&action=getfile&hash=%s", baseUrl, apiKey, hash)
-	resp, err := http.Get(url)
+	data, err := request(url, apiKey)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	return data, nil
+}
+
+func request(url string, apiKey string) ([]byte, error) {
+	for {
+		log.Print(url)
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		if isOverLimit(body, apiKey) {
+			continue
+		}
+		return body, nil
 	}
-	return body, nil
+}
+
+func isOverLimit(data []byte, apiKey string) bool {
+	if strings.HasPrefix(string(data), "Error: Over Request Limit.") {
+		log.Printf("apikey %s is over limit", apiKey)
+		removeApiKey(apiKey)
+		return true
+	}
+	return false
 }

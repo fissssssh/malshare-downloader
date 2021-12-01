@@ -16,3 +16,4 @@ vendor/
 build/
 hash_files/
 mal_files/
+key_file.txt
