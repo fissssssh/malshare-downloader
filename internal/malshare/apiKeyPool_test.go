@@ -32,11 +32,22 @@ func TestApiKeyPool(t *testing.T) {
 		if err != nil {
 			t.Fail()
 		}
-		if key == "" {
+		if key != apiKeys[i] {
 			t.Fail()
 		}
-		removeApiKey(key)
+		removeApiKey()
 	}
+	_, err = getApiKey()
+	if err == nil {
+		t.Fail()
+	}
+	removeApiKey()
+	removeApiKey()
+	removeApiKey()
+	removeApiKey()
+	removeApiKey()
+	removeApiKey()
+	removeApiKey()
 	_, err = getApiKey()
 	if err == nil {
 		t.Fail()

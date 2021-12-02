@@ -38,7 +38,7 @@ func GetSearchResult(str string) (*[]SearchDetails, error) {
 		return nil, err
 	}
 	url := fmt.Sprintf("%s/api.php?api_key=%s&action=search&query=%s", baseUrl, apiKey, str)
-	data, err := request(url, apiKey)
+	data, err := request(url)
 	if err != nil {
 		return nil, err
 	}
@@ -57,14 +57,14 @@ func DownloadFileFromHash(hash string) ([]byte, error) {
 		return nil, err
 	}
 	url := fmt.Sprintf("%s/api.php?api_key=%s&action=getfile&hash=%s", baseUrl, apiKey, hash)
-	data, err := request(url, apiKey)
+	data, err := request(url)
 	if err != nil {
 		return nil, err
 	}
 	return data, nil
 }
 
-func request(url string, apiKey string) ([]byte, error) {
+func request(url string) ([]byte, error) {
 	for {
 		log.Print(url)
 		resp, err := http.Get(url)
@@ -76,17 +76,17 @@ func request(url string, apiKey string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if isOverLimit(body, apiKey) {
+		if isOverLimit(body) {
 			continue
 		}
 		return body, nil
 	}
 }
 
-func isOverLimit(data []byte, apiKey string) bool {
+func isOverLimit(data []byte) bool {
 	if strings.HasPrefix(string(data), "Error: Over Request Limit.") {
-		log.Printf("apikey %s is over limit", apiKey)
-		removeApiKey(apiKey)
+		log.Print("apikey is over limit")
+		removeApiKey()
 		return true
 	}
 	return false

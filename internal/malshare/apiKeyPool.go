@@ -11,8 +11,10 @@ func InitApiKeyPool(keys ...string) {
 	copy(apiKeys, keys)
 }
 
-func removeApiKey(key string) {
-	apiKeys = apiKeys[1:]
+func removeApiKey() {
+	if len(apiKeys) > 0 {
+		apiKeys = apiKeys[1:]
+	}
 }
 
 func getApiKey() (string, error) {
