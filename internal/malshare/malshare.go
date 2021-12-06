@@ -33,12 +33,8 @@ const baseUrl = "https://www.malshare.com"
 
 // GetSearchResult return details form search sample hashes, sources and file names
 func GetSearchResult(str string) (*[]SearchDetails, error) {
-	apiKey, err := getApiKey()
-	if err != nil {
-		return nil, err
-	}
-	url := fmt.Sprintf("%s/api.php?api_key=%s&action=search&query=%s", baseUrl, apiKey, str)
-	data, err := request(url)
+	urlTmp := fmt.Sprintf("%s/api.php?api_key=%%s&action=search&query=%s", baseUrl, str)
+	data, err := request(urlTmp)
 	if err != nil {
 		return nil, err
 	}
@@ -52,21 +48,21 @@ func GetSearchResult(str string) (*[]SearchDetails, error) {
 
 // DownloadFileFromHash return file for specific hash
 func DownloadFileFromHash(hash string) ([]byte, error) {
-	apiKey, err := getApiKey()
-	if err != nil {
-		return nil, err
-	}
-	url := fmt.Sprintf("%s/api.php?api_key=%s&action=getfile&hash=%s", baseUrl, apiKey, hash)
-	data, err := request(url)
+	urlTmp := fmt.Sprintf("%s/api.php?api_key=%%s&action=getfile&hash=%s", baseUrl, hash)
+	data, err := request(urlTmp)
 	if err != nil {
 		return nil, err
 	}
 	return data, nil
 }
 
-func request(url string) ([]byte, error) {
+func request(urlTmp string) ([]byte, error) {
 	for {
-		log.Print(url)
+		apiKey, err := getApiKey()
+		if err != nil {
+			return nil, err
+		}
+		url := fmt.Sprintf(urlTmp, apiKey)
 		resp, err := http.Get(url)
 		if err != nil {
 			return nil, err
